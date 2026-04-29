@@ -3,20 +3,31 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Vikas NGO Transparency Engine API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: projects
+    description: NGO projects
+  - name: expenses
+    description: Project expenses
+  - name: audit
+    description: Audit logs
+  - name: storage
+    description: File storage
+  - name: dashboard
+    description: Aggregated metrics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +35,200 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current auth state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCurrentAuthUserResponse"
+  /mobile-auth/token-exchange:
+    post:
+      operationId: exchangeMobileAuthorizationCode
+      tags: [auth]
+      summary: Exchange mobile authorization code for session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExchangeMobileAuthorizationCodeBody"
+      responses:
+        "200":
+          description: Session token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeMobileAuthorizationCodeResponse"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects (public)
+      responses:
+        "200":
+          description: List of projects with summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSummary"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project (protected)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project detail (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+  /projects/{id}/expenses:
+    get:
+      operationId: listProjectExpenses
+      tags: [expenses]
+      summary: List expenses for a project (public)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+    post:
+      operationId: createProjectExpense
+      tags: [expenses]
+      summary: Add an expense to a project (protected)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseBody"
+      responses:
+        "201":
+          description: Expense created with risk analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      summary: List recent expenses across all projects (public)
+      responses:
+        "200":
+          description: Recent expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpenseWithProject"
+  /expenses/flagged:
+    get:
+      operationId: listFlaggedExpenses
+      tags: [expenses]
+      summary: List flagged/high-risk expenses (public)
+      responses:
+        "200":
+          description: Flagged expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpenseWithProject"
+  /audit:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      summary: List audit log entries (protected)
+      responses:
+        "200":
+          description: Audit logs in reverse chronological order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLog"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Aggregated transparency metrics (public)
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned URL issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
 components:
   schemas:
     HealthStatus:
@@ -31,6 +236,310 @@ components:
       properties:
         status:
           type: string
+      required: [status]
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
+        profileImageUrl:
+          type: ["string", "null"]
+      required: [id]
+    GetCurrentAuthUserResponse:
+      type: object
+      properties:
+        isAuthenticated:
+          type: boolean
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+      required: [isAuthenticated]
+    ExchangeMobileAuthorizationCodeBody:
+      type: object
+      properties:
+        code:
+          type: string
+        codeVerifier:
+          type: string
+        state:
+          type: string
+        nonce:
+          type: string
+        redirectUri:
+          type: string
+      required: [code, codeVerifier, state, nonce, redirectUri]
+    ExchangeMobileAuthorizationCodeResponse:
+      type: object
+      properties:
+        sessionToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/AuthUser"
+      required: [sessionToken, user]
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        budget:
+          type: string
+        beneficiaries:
+          type: integer
+        status:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        createdBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
       required:
+        - id
+        - name
+        - slug
+        - category
+        - location
+        - description
+        - budget
+        - beneficiaries
         - status
-
+        - startDate
+        - createdAt
+        - updatedAt
+    ProjectSummary:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          properties:
+            totalSpent:
+              type: string
+            remaining:
+              type: string
+            expenseCount:
+              type: integer
+            flaggedCount:
+              type: integer
+            utilizationPercent:
+              type: number
+          required: [totalSpent, remaining, expenseCount, flaggedCount, utilizationPercent]
+    ProjectDetail:
+      allOf:
+        - $ref: "#/components/schemas/ProjectSummary"
+        - type: object
+          properties:
+            recentExpenses:
+              type: array
+              items:
+                $ref: "#/components/schemas/Expense"
+          required: [recentExpenses]
+    CreateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        budget:
+          type: string
+        beneficiaries:
+          type: integer
+        status:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+      required: [name, slug, category, location, description, budget, beneficiaries]
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        vendor:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: string
+        receiptPath:
+          type: ["string", "null"]
+        riskScore:
+          type: integer
+        riskFlags:
+          type: array
+          items:
+            type: string
+        riskReasoning:
+          type: ["string", "null"]
+        flagged:
+          type: boolean
+        spentAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - vendor
+        - category
+        - description
+        - amount
+        - riskScore
+        - riskFlags
+        - flagged
+        - spentAt
+        - createdAt
+        - updatedAt
+    ExpenseWithProject:
+      allOf:
+        - $ref: "#/components/schemas/Expense"
+        - type: object
+          properties:
+            projectName:
+              type: string
+            projectSlug:
+              type: string
+          required: [projectName, projectSlug]
+    CreateExpenseBody:
+      type: object
+      properties:
+        vendor:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        amount:
+          type: string
+        receiptPath:
+          type: ["string", "null"]
+        spentAt:
+          type: string
+          format: date-time
+      required: [vendor, category, description, amount]
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: ["integer", "null"]
+        userId:
+          type: ["string", "null"]
+        userEmail:
+          type: ["string", "null"]
+        summary:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, action, entityType, summary, metadata, createdAt]
+    DashboardSummary:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        activeProjects:
+          type: integer
+        totalBudget:
+          type: string
+        totalSpent:
+          type: string
+        totalRemaining:
+          type: string
+        totalBeneficiaries:
+          type: integer
+        flaggedExpenseCount:
+          type: integer
+        averageUtilizationPercent:
+          type: number
+        categoryBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+              spent:
+                type: string
+            required: [category, count, spent]
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+      required:
+        - totalProjects
+        - activeProjects
+        - totalBudget
+        - totalSpent
+        - totalRemaining
+        - totalBeneficiaries
+        - flaggedExpenseCount
+        - averageUtilizationPercent
+        - categoryBreakdown
+        - recentActivity
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required: [name]
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+      required: [uploadURL, objectPath]

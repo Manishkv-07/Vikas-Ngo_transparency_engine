@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Vikas NGO Transparency Engine"
+version = "1.0.0"
+id = "artifacts/transparency-engine"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18800
+
+[services.development]
+run = "pnpm --filter @workspace/transparency-engine run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/transparency-engine", "run", "build" ]
+publicDir = "artifacts/transparency-engine/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18800"
+BASE_PATH = "/"
