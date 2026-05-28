@@ -17,8 +17,9 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let cancelled = false;
+    const apiBase = import.meta.env.VITE_API_URL || "";
 
-    fetch("/api/auth/user", { credentials: "include" })
+    fetch(`${apiBase}/api/auth/user`, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<{ user: AuthUser | null }>;
@@ -42,12 +43,16 @@ export function useAuth(): AuthState {
   }, []);
 
   const login = useCallback(() => {
-    const base = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(base)}`;
+    // Instead of redirecting to /api/login, we will handle this in the Login component.
+    // However, if any component calls login() directly, we can redirect to our /login route.
+    window.location.href = `/login`;
   }, []);
 
-  const logout = useCallback(() => {
-    window.location.href = "/api/logout";
+  const logout = useCallback(async () => {
+    const apiBase = import.meta.env.VITE_API_URL || "";
+    await fetch(`${apiBase}/api/auth/logout`, { method: "POST" });
+    setUser(null);
+    window.location.href = "/";
   }, []);
 
   return {

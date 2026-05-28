@@ -5,7 +5,7 @@ import type { UppyFile, UploadResult } from "@uppy/core";
 import DashboardModal from "@uppy/react/dashboard-modal";
 import "@uppy/core/css/style.min.css";
 import "@uppy/dashboard/css/style.min.css";
-import AwsS3 from "@uppy/aws-s3";
+import XHRUpload from "@uppy/xhr-upload";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -80,9 +80,9 @@ export function ObjectUploader({
       },
       autoProceed: false,
     })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: (file) => onGetUploadParametersRef.current(file),
+      .use(XHRUpload, {
+        endpoint: "/api/storage/upload",
+        fieldName: "file",
       })
       .on("complete", (result) => {
         onCompleteRef.current?.(result);

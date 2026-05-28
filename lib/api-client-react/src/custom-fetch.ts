@@ -367,5 +367,10 @@ export async function customFetch<T = unknown>(
     throw new ApiError(response, errorData, requestInfo);
   }
 
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("text/html")) {
+    throw new ApiError(response, "API Route not found (HTML returned by dev server fallback)", requestInfo);
+  }
+
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
 }
