@@ -45,6 +45,20 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'NGO Transparency Engine Backend is running successfully.',
+    endpoints: {
+      health: '/api/healthz',
+      projects: '/api/projects',
+      expenses: '/api/expenses',
+      donations: '/api/donations',
+      dashboard: '/api/dashboard/summary'
+    }
+  });
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/healthz', healthRouter);
 app.use('/api/projects', projectsRouter);
